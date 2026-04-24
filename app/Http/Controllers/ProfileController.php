@@ -7,24 +7,26 @@ use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
-    // 🔹 GET /api/profiles
+    // GET /api/profiles
     public function index()
     {
         return response()->json(Profile::all(), 200);
     }
 
-    // 🔹 POST /api/profiles
+    // POST /api/profiles
     public function store(Request $request)
     {
         $profile = Profile::create([
             'name' => $request->name,
-            'bio' => $request->bio
+            'bio' => $request->bio,
+            'cover_photo' => $request->cover_photo,
+            'profile_photo' => $request->profile_photo,
         ]);
 
-        return response()->json($profile, 201); // ✅ penting 201
+        return response()->json($profile, 201);
     }
 
-    // 🔹 GET /api/profiles/{id}
+    // GET /api/profiles/{id}
     public function show($id)
     {
         $profile = Profile::find($id);
@@ -36,7 +38,7 @@ class ProfileController extends Controller
         return response()->json($profile, 200);
     }
 
-    // 🔹 PUT /api/profiles/{id}
+    // PUT /api/profiles/{id}
     public function update(Request $request, $id)
     {
         $profile = Profile::find($id);
@@ -47,13 +49,15 @@ class ProfileController extends Controller
 
         $profile->update([
             'name' => $request->name,
-            'bio' => $request->bio
+            'bio' => $request->bio,
+            'cover_photo' => $request->cover_photo,
+            'profile_photo' => $request->profile_photo
         ]);
 
         return response()->json($profile, 200);
     }
 
-    // 🔹 DELETE /api/profiles/{id}
+    // DELETE /api/profiles/{id}
     public function destroy($id)
     {
         $profile = Profile::find($id);

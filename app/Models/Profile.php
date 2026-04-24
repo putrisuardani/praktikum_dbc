@@ -9,5 +9,7 @@ class Profile extends Model
     protected $fillable = [
         'name',
         'bio',
+        'cover_photo',
+        'profile_photo'
     ];
 }
