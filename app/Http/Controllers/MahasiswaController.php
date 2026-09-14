@@ -11,9 +11,15 @@ class MahasiswaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Mahasiswa::all();
+        $query = Mahasiswa::query();
+
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        return response()->json($query->get());
     }
 
     /**
@@ -36,11 +42,11 @@ class MahasiswaController extends Controller
             'angkatan' => $request->angkatan
         ]);
 
-        MahasiswaLog::create([
-            'action' => 'create',
-            'data' => $mhs->toArray(),
-            'created_at' => now()
-        ]);
+        // MahasiswaLog::create([
+        //     'action' => 'create',
+        //     'data' => $mhs->toArray(),
+        //     'created_at' => now()
+        // ]);
 
         return response()->json($mhs);
     }

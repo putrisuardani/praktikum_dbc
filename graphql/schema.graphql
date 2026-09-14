@@ -1,0 +1,14 @@
+type Mahasiswa {
+    id: ID!
+    nim: String
+    nama: String
+    jurusan: String
+    angkatan: String
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Query {
+    mahasiswas: [Mahasiswa!]! @all
+    mahasiswa(id: ID! @eq): Mahasiswa @find
+}
