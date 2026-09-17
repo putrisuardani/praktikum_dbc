@@ -10,3 +10,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::apiResource('mahasiswa', MahasiswaController::class);
 Route::apiResource('profiles', ProfileController::class);
+Route::get('/cicd-test', function () {
+    return response()->json([
+        'message' => 'CI/CD berhasil!'
+    ]);
+});
