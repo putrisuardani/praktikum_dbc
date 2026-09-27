@@ -20,11 +20,6 @@ class MahasiswaController extends Controller
         return response()->json($query->get());
     }
 
-    public function create(Request $request)
-    {
-        //
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -39,54 +34,54 @@ class MahasiswaController extends Controller
 
         if ($request->hasFile('foto')) {
 
-        $foto = $request->file('foto');
+            $foto = $request->file('foto');
 
-        // Path file di Supabase Storage
-        $fotoPath = 'mahasiswa/' .
-            Str::uuid() . '.' .
-            $foto->getClientOriginalExtension();
+            // Path file di Supabase Storage
+            $fotoPath = 'mahasiswa/' .
+                Str::uuid() . '.' .
+                $foto->getClientOriginalExtension();
 
-        $supabaseUrl = config('services.supabase.url');
-        $supabaseKey = config('services.supabase.key');
-        $bucket      = config('services.supabase.bucket');
+            $supabaseUrl = config('services.supabase.url');
+            $supabaseKey = config('services.supabase.key');
+            $bucket      = config('services.supabase.bucket');
 
-        // Upload foto ke Supabase Storage
-        $response = Http::withHeaders([
-            'apikey'        => $supabaseKey,
-            'Authorization' => 'Bearer ' . $supabaseKey,
-            'Content-Type'  => $foto->getMimeType(),
-        ])
-        ->withBody(
-            file_get_contents($foto->getRealPath()),
-            $foto->getMimeType()
-        )
-        ->post(
-            "{$supabaseUrl}/storage/v1/object/{$bucket}/{$fotoPath}"
-        );
+            // Upload foto ke Supabase Storage
+            $response = Http::withHeaders([
+                'apikey'        => $supabaseKey,
+                'Authorization' => 'Bearer ' . $supabaseKey,
+                'Content-Type'  => $foto->getMimeType(),
+            ])
+            ->withBody(
+                file_get_contents($foto->getRealPath()),
+                $foto->getMimeType()
+            )
+            ->post(
+                "{$supabaseUrl}/storage/v1/object/{$bucket}/{$fotoPath}"
+            );
 
-        // Jika upload ke Supabase gagal
-        if ($response->failed()) {
-            return response()->json([
-                'message' => 'Foto gagal diunggah ke Supabase Storage',
-                'error'   => $response->json(),
-            ], $response->status());
+            // Jika upload ke Supabase gagal
+            if ($response->failed()) {
+                return response()->json([
+                    'message' => 'Foto gagal diunggah ke Supabase Storage',
+                    'error'   => $response->json(),
+                ], $response->status());
+            }
         }
+
+        // Simpan data mahasiswa + path foto ke PostgreSQL
+        $mhs = Mahasiswa::create([
+            'nim'       => $validated['nim'],
+            'nama'      => $validated['nama'],
+            'jurusan'   => $validated['jurusan'],
+            'angkatan'  => $validated['angkatan'],
+            'foto_path' => $fotoPath,
+        ]);
+
+        return response()->json([
+            'message' => 'Data mahasiswa berhasil ditambahkan',
+            'data'    => $mhs,
+        ], 201);
     }
-
-    // Simpan data mahasiswa + path foto ke PostgreSQL
-    $mhs = Mahasiswa::create([
-        'nim'       => $validated['nim'],
-        'nama'      => $validated['nama'],
-        'jurusan'   => $validated['jurusan'],
-        'angkatan'  => $validated['angkatan'],
-        'foto_path' => $fotoPath,
-    ]);
-
-    return response()->json([
-        'message' => 'Data mahasiswa berhasil ditambahkan',
-        'data'    => $mhs,
-    ], 201);
-}
 
     /**
      * Display the specified resource.
