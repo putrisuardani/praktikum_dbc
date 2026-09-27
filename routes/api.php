@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::apiResource('mahasiswa', MahasiswaController::class);
 Route::apiResource('profiles', ProfileController::class);
+Route::put('/mahasiswa/{id}/hobi', [MahasiswaController::class, 'updateHobi']);
 Route::get('/cicd-test', function () {
     return response()->json([
         'message' => 'CI/CD berhasil!'

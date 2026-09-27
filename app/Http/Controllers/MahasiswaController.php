@@ -1,16 +1,14 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
 use App\Models\MahasiswaLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class MahasiswaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = Mahasiswa::query();
@@ -22,34 +20,73 @@ class MahasiswaController extends Controller
         return response()->json($query->get());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(Request $request)
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $mhs = Mahasiswa::create([
-            'nim' => $request->nim,
-            'nama' => $request->nama,
-            'jurusan' => $request->jurusan,
-            'angkatan' => $request->angkatan
+        $validated = $request->validate([
+            'nim'      => 'required|numeric',
+            'nama'     => 'required|string|max:255',
+            'jurusan'  => 'required|string|max:255',
+            'angkatan' => 'required|numeric',
+            'foto'     => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // MahasiswaLog::create([
-        //     'action' => 'create',
-        //     'data' => $mhs->toArray(),
-        //     'created_at' => now()
-        // ]);
+        $fotoPath = null;
 
-        return response()->json($mhs);
+        if ($request->hasFile('foto')) {
+
+        $foto = $request->file('foto');
+
+        // Path file di Supabase Storage
+        $fotoPath = 'mahasiswa/' .
+            Str::uuid() . '.' .
+            $foto->getClientOriginalExtension();
+
+        $supabaseUrl = config('services.supabase.url');
+        $supabaseKey = config('services.supabase.key');
+        $bucket      = config('services.supabase.bucket');
+
+        // Upload foto ke Supabase Storage
+        $response = Http::withHeaders([
+            'apikey'        => $supabaseKey,
+            'Authorization' => 'Bearer ' . $supabaseKey,
+            'Content-Type'  => $foto->getMimeType(),
+        ])
+        ->withBody(
+            file_get_contents($foto->getRealPath()),
+            $foto->getMimeType()
+        )
+        ->post(
+            "{$supabaseUrl}/storage/v1/object/{$bucket}/{$fotoPath}"
+        );
+
+        // Jika upload ke Supabase gagal
+        if ($response->failed()) {
+            return response()->json([
+                'message' => 'Foto gagal diunggah ke Supabase Storage',
+                'error'   => $response->json(),
+            ], $response->status());
+        }
     }
+
+    // Simpan data mahasiswa + path foto ke PostgreSQL
+    $mhs = Mahasiswa::create([
+        'nim'       => $validated['nim'],
+        'nama'      => $validated['nama'],
+        'jurusan'   => $validated['jurusan'],
+        'angkatan'  => $validated['angkatan'],
+        'foto_path' => $fotoPath,
+    ]);
+
+    return response()->json([
+        'message' => 'Data mahasiswa berhasil ditambahkan',
+        'data'    => $mhs,
+    ], 201);
+}
 
     /**
      * Display the specified resource.
@@ -73,6 +110,23 @@ class MahasiswaController extends Controller
     public function update(Request $request, Mahasiswa $mahasiswa)
     {
         //
+    }
+
+    public function updateHobi(Request $request, $id)
+    {
+        $request->validate([
+            'hobi' => 'required|string'
+        ]);
+
+        $mahasiswa = Mahasiswa::findOrFail($id);
+
+        $mahasiswa->hobi = $request->hobi;
+        $mahasiswa->save();
+
+        return response()->json([
+            'message' => 'Hobi berhasil diperbarui',
+            'data' => $mahasiswa
+        ]);
     }
 
     /**

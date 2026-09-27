@@ -10,6 +10,8 @@ class Mahasiswa extends Model
         'nim',
         'nama',
         'jurusan',
-        'angkatan'
+        'angkatan',
+        'foto_path',
+        'hobi'
     ];
 }
