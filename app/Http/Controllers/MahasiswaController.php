@@ -77,6 +77,12 @@ class MahasiswaController extends Controller
             'foto_path' => $fotoPath,
         ]);
 
+        MahasiswaLog::create([
+            'action'     => 'create',
+            'data'       => $mhs->toArray(),
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Data mahasiswa berhasil ditambahkan',
             'data'    => $mhs,
