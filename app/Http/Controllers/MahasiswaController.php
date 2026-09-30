@@ -131,25 +131,25 @@ class MahasiswaController extends Controller
     }
 
     public function vectorSearch(Request $request)
-{
-    $request->validate([
-        'text' => 'required|string',
-    ]);
+    {
+        $request->validate([
+            'text' => 'required|string',
+        ]);
 
-    $url = env('SUPABASE_URL') . '/functions/v1/swift-api';
-    $key = env('SUPABASE_KEY');
+        $url = env('SUPABASE_URL') . '/functions/v1/swift-api';
+        $key = env('SUPABASE_KEY');
 
-    $response = Http::withHeaders([
-        'apikey' => $key,
-    ])->post($url, [
-        'text' => $request->text,
-    ]);
+        $response = Http::withHeaders([
+            'apikey' => $key,
+        ])->post($url, [
+            'text' => $request->text,
+        ]);
 
-    return response()->json(
-        $response->json(),
-        $response->status()
-    );
-}
+        return response()->json(
+            $response->json(),
+            $response->status()
+        );
+    }
 
 public function generateEmbedding()
 {
