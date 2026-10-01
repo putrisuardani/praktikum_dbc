@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\MahasiswaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Neo4jController;
+
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -21,4 +23,12 @@ Route::post(
 Route::post(
     '/mahasiswa/generate-embedding',
     [MahasiswaController::class, 'generateEmbedding']
+);
+Route::get(
+    '/mahasiswa/{nim}/makanan',
+    [Neo4jController::class, 'makanan']
+);
+Route::get(
+    '/mahasiswa/{nim}/rekomendasi',
+    [Neo4jController::class, 'rekomendasi']
 );
