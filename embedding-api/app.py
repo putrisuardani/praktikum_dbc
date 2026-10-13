@@ -1,6 +1,10 @@
 from pinecone import Pinecone
+from dotenv import load_dotenv
+import os
 
-pc = Pinecone(api_key="pcsk_5KHfdb_8CHWuUuvFVuFQtXnts9qg6cC866UqrxiRcbX2PMLg8F8SA2cVuGx53rnGuFXuaU")
+load_dotenv()
+
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 index_name = "database-cloud"
 
