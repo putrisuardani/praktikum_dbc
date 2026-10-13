@@ -130,38 +130,222 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    public function vectorSearch(Request $request)
-    {
-        $request->validate([
-            'text' => 'required|string',
-        ]);
+    // public function vectorSearch(Request $request)
+    // {
+    //     $request->validate([
+    //         'text' => 'required|string',
+    //     ]);
 
-        $url = env('SUPABASE_URL') . '/functions/v1/swift-api';
-        $key = env('SUPABASE_KEY');
+    //     $url = env('SUPABASE_URL') . '/functions/v1/swift-api';
+    //     $key = env('SUPABASE_KEY');
 
-        $response = Http::withHeaders([
-            'apikey' => $key,
-        ])->post($url, [
-            'text' => $request->text,
-        ]);
+    //     $response = Http::withHeaders([
+    //         'apikey' => $key,
+    //     ])->post($url, [
+    //         'text' => $request->text,
+    //     ]);
 
-        return response()->json(
-            $response->json(),
-            $response->status()
-        );
+    //     return response()->json(
+    //         $response->json(),
+    //         $response->status()
+    //     );
+    // }
+
+
+// public function vectorSearch(Request $request)
+// {
+//     $request->validate([
+//         'text' => 'required|string',
+//     ]);
+
+//     $baseUrl = rtrim(env('SUPABASE_URL'), '/');
+//     $key = env('SUPABASE_KEY');
+//     $pythonUrl = rtrim(env('PYTHON_API_URL'), '/');
+
+//     // 1. Ubah pertanyaan menjadi embedding melalui Python
+//     $python = Http::post($pythonUrl . '/embed', [
+//         'text' => $request->text,
+//     ]);
+
+//     if ($python->failed()) {
+//         return response()->json([
+//             'error' => $python->body(),
+//         ], $python->status());
+//     }
+
+//     $embedding = $python->json('embedding');
+//     $vector = '[' . implode(',', $embedding) . ']';
+
+//     // 2. Cari mahasiswa melalui fungsi SQL Supabase
+//     $search = Http::withHeaders([
+//         'apikey' => $key,
+//         'Authorization' => 'Bearer ' . $key,
+//     ])->post(
+//         $baseUrl . '/rest/v1/rpc/match_mahasiswa',
+//         [
+//             'query_embedding' => $vector,
+//             'match_threshold' => 0.3,
+//             'match_count' => 3,
+//         ]
+//     );
+
+//     if ($search->failed()) {
+//         return response()->json([
+//             'error' => $search->body(),
+//         ], $search->status());
+//     }
+
+//     return response()->json([
+//         'query' => $request->text,
+//         'results' => $search->json(),
+//     ]);
+// }
+
+
+public function vectorSearch(Request $request)
+{
+    $request->validate([
+        'text' => 'required|string',
+    ]);
+
+    $baseUrl = rtrim(env('SUPABASE_URL'), '/');
+    $key = env('SUPABASE_KEY');
+    $pythonUrl = rtrim(env('PYTHON_API_URL'), '/');
+
+    // 1. Generate embedding pertanyaan melalui Python
+    $python = Http::post($pythonUrl . '/embed', [
+        'text' => $request->text,
+    ]);
+
+    if ($python->failed()) {
+        return response()->json([
+            'error' => 'Gagal menghasilkan embedding',
+            'details' => $python->body(),
+        ], $python->status());
     }
 
-public function generateEmbedding()
-{
-    $response = Http::withHeaders([
-        'Authorization' => 'Bearer ' . env('SUPABASE_KEY'),
-        'apikey' => env('SUPABASE_KEY'),
+    $embedding = $python->json('embedding');
+
+    if (!is_array($embedding) || count($embedding) !== 384) {
+        return response()->json([
+            'error' => 'Embedding tidak valid atau dimensinya bukan 384',
+        ], 500);
+    }
+
+    $vector = '[' . implode(',', $embedding) . ']';
+
+    // 2. Jalankan similarity search di Supabase
+    $search = Http::withHeaders([
+        'apikey' => $key,
+        'Authorization' => 'Bearer ' . $key,
     ])->post(
-        env('SUPABASE_URL') . '/functions/v1/rapid-responder'
+        $baseUrl . '/rest/v1/rpc/match_mahasiswa',
+        [
+            'query_embedding' => $vector,
+            'match_threshold' => -1,
+            'match_count' => 3,
+        ]
     );
 
-    return response()->json($response->json(), $response->status());
+    if ($search->failed()) {
+        return response()->json([
+            'error' => 'Gagal melakukan similarity search',
+            'details' => $search->body(),
+        ], $search->status());
+    }
+
+    // 3. Kembalikan hasil pencarian
+    return response()->json([
+        'query' => $request->text,
+        'results' => $search->json(),
+    ]);
 }
+
+
+    // public function generateEmbedding()
+    // {
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('SUPABASE_KEY'),
+    //         'apikey' => env('SUPABASE_KEY'),
+    //     ])->post(
+    //         env('SUPABASE_URL') . '/functions/v1/rapid-responder'
+    //     );
+
+    //     return response()->json($response->json(), $response->status());
+    // }
+
+    
+public function generateEmbedding()
+{
+    $baseUrl = rtrim(env('SUPABASE_URL'), '/');
+    $key = env('SUPABASE_KEY');
+    $pythonUrl = rtrim(env('PYTHON_API_URL'), '/');
+
+    $response = Http::withHeaders([
+        'apikey' => $key,
+        'Authorization' => 'Bearer ' . $key,
+    ])->get($baseUrl . '/rest/v1/mahasiswas', [
+        'select' => 'id,nama,hobi',
+        'embedding' => 'is.null',
+        'hobi' => 'not.is.null',
+        'limit' => 100,
+    ]);
+
+    if ($response->failed()) {
+        return response()->json([
+            'error' => $response->body(),
+        ], $response->status());
+    }
+
+    $results = [];
+
+    foreach ($response->json() as $mhs) {
+        $text = trim($mhs['hobi'] ?? '');
+
+        if ($text === '') {
+            continue;
+        }
+
+        $python = Http::post($pythonUrl . '/embed', [
+            'text' => $text,
+        ]);
+
+        if ($python->failed()) {
+            $results[] = [
+                'id' => $mhs['id'],
+                'status' => 'gagal generate',
+            ];
+            continue;
+        }
+
+        $embedding = $python->json('embedding');
+        $vector = '[' . implode(',', $embedding) . ']';
+
+        $update = Http::withHeaders([
+            'apikey' => $key,
+            'Authorization' => 'Bearer ' . $key,
+            'Prefer' => 'return=minimal',
+        ])->patch(
+            $baseUrl . '/rest/v1/mahasiswas?id=eq.'
+                . urlencode((string) $mhs['id']),
+            ['embedding' => $vector]
+        );
+
+        $results[] = [
+            'id' => $mhs['id'],
+            'nama' => $mhs['nama'],
+            'status' => $update->successful()
+                ? 'berhasil'
+                : 'gagal menyimpan',
+        ];
+    }
+
+    return response()->json([
+        'message' => 'Proses embedding selesai',
+        'results' => $results,
+    ]);
+}
+
 
     /**
      * Remove the specified resource from storage.
