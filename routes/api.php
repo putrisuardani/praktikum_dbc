@@ -3,10 +3,12 @@
 use App\Http\Controllers\MahasiswaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Neo4jController;
+use App\Http\Controllers\SpatialController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
+Route::post('/mahasiswa/jarak', [SpatialController::class, 'hitungJarak']);
 
 Route::apiResource('mahasiswa', MahasiswaController::class);
 
@@ -20,6 +22,10 @@ Route::post(
     '/mahasiswa/vector-search',
     [MahasiswaController::class, 'vectorSearch']
 );
+
+Route::put('/mahasiswa/{id}/lokasi', [SpatialController::class, 'updateLokasi']);
+Route::post('/mahasiswa/radius', [SpatialController::class, 'dalamRadius']);
+
 
 // Neo4j routes
 Route::get(
