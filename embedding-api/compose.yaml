@@ -1,0 +1,8 @@
+services:
+  embedding-api:
+    build:
+      context: .
+    container_name: embedding-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8001"
