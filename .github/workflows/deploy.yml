@@ -23,5 +23,5 @@ jobs:
             php artisan migrate --force
             php artisan optimize:clear
             php artisan optimize
-            cd embedding-api
+            cd /var/www/praktikum_dbc/embedding-api
             docker compose up -d --build
